@@ -593,15 +593,20 @@ public class LavaNode<TLavaPlayer, TLavaTrack> : IAsyncDisposable
         if (_baseSocketClient.CurrentUser?.Id != user.Id) {
             return;
         }
-        
+
         var guildId = (currentState.VoiceChannel ?? pastState.VoiceChannel).Guild.Id;
+        var channelId = currentState.VoiceChannel?.Id.ToString() ?? string.Empty;
+
         if (_voiceStates.TryGetValue(guildId, out var voiceState)) {
+            // The update will be sent in OnVoiceServerUpdatedAsync once token/endpoint are available.
             voiceState.SessionId = currentState.VoiceSessionId;
-            await UpdatePlayerAsync(guildId, updatePayload: new UpdatePlayerPayload(VoiceState: voiceState));
+            voiceState.ChannelId = channelId;
+            _voiceStates[guildId] = voiceState;
         }
-        
-        voiceState = new VoiceState(null, null, currentState.VoiceSessionId, $"{currentState.VoiceChannel.Id}");
-        _voiceStates[guildId] = voiceState;
+        else {
+            voiceState = new VoiceState(null, null, currentState.VoiceSessionId, channelId);
+            _voiceStates[guildId] = voiceState;
+        }
     }
     
     private Task OnVoiceServerUpdatedAsync(SocketVoiceServer voiceServer) {
